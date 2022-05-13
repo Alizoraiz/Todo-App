@@ -17,7 +17,7 @@ class TodoEntity {
     return new TodoEntity(uuid.v4(), name, price, description);
   }
 
-  static createFromObj(obj: any) {
+  static createFromObj(obj: any) {        
     return new TodoEntity(
       obj.todoId,
       obj.name,

@@ -12,43 +12,68 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const TodoEntity_1 = __importDefault(require("../../domain/todo/TodoEntity"));
-const TodoStore_1 = __importDefault(require("../../stores/TodoStore"));
+const todoService_1 = __importDefault(require("../../app/services/todos/todoService"));
+const errorHandler_1 = __importDefault(require("../utlis/errorHandler"));
+const loggerService_1 = __importDefault(require("../utlis/loggerService"));
 //Create TODO
 const addTodo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const todoEntity = TodoEntity_1.default.createFromDetails(req.body.name, req.body.price, req.body.description);
-    const todo = yield TodoStore_1.default.add(todoEntity);
-    res.status(200).send(todo);
+    const { body: { name, price, description } } = req;
+    try {
+        const response = yield todoService_1.default.addTodo(name, price, description);
+        res.status(200).send(response);
+    }
+    catch (err) {
+        loggerService_1.default.warn(err.message);
+        return (0, errorHandler_1.default)(err, res);
+    }
 });
 //Get All TODO's
 const getAllTodo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    let todos = yield TodoStore_1.default.findAllTodos();
-    res.status(200).send(todos);
+    const { page, perPage } = req.query;
+    try {
+        const response = yield todoService_1.default.getAllTodos(page, perPage);
+        res.status(200).send(response);
+    }
+    catch (err) {
+        loggerService_1.default.warn(err.message);
+        return (0, errorHandler_1.default)(err, res);
+    }
 });
 //Get Single Todo
 const getOneTodo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    let id = req.params.id;
-    let todo = yield TodoStore_1.default.findByTodoId(id);
-    if (todo)
-        res.status(200).send(todo);
-    else
-        res.status(404).send("Todo not found");
+    const { id } = req.params;
+    try {
+        const response = yield todoService_1.default.getOneTodo(id);
+        res.status(200).send(response);
+    }
+    catch (err) {
+        loggerService_1.default.warn(err.message);
+        return (0, errorHandler_1.default)(err, res);
+    }
 });
 //Update Todo
 const updateTodo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    req.body.todoId = req.params.id;
-    const todoEntity = TodoEntity_1.default.createFromObj(req.body);
-    const todo = yield TodoStore_1.default.update(todoEntity);
-    if (todo[0] === 1)
-        res.status(200).send("Todo has been updated");
-    else
-        res.send("Error, Todo not Updated");
+    const { id } = req.params;
+    const { name, price, description } = req.body;
+    try {
+        const response = yield todoService_1.default.updateTodo(id, name, price, description);
+        return res.status(200).send(response);
+    }
+    catch (err) {
+        loggerService_1.default.warn(err.message);
+        return (0, errorHandler_1.default)(err, res);
+    }
 });
-//Delete Product
+//Delete Todo
 const deleteTodo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    req.body.todoId = req.params.id;
-    const todoEntity = TodoEntity_1.default.createFromObj(req.body);
-    yield TodoStore_1.default.remove(todoEntity);
-    res.status(200).send("Todo has been deleted");
+    const { id } = req.params;
+    try {
+        const response = yield todoService_1.default.deleteTodo(id);
+        res.status(200).send({ message: 'Successfully deleted' });
+    }
+    catch (err) {
+        loggerService_1.default.warn(err.message);
+        return (0, errorHandler_1.default)(err, res);
+    }
 });
 exports.default = { addTodo, getAllTodo, getOneTodo, updateTodo, deleteTodo };

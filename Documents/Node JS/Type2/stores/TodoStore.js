@@ -15,6 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const TodoEntity_1 = __importDefault(require("../domain/todo/TodoEntity"));
 const sequelize_1 = __importDefault(require("sequelize"));
 const mysqlConnection_1 = __importDefault(require("../config/mysqlConnection"));
+const paginationCollection_1 = __importDefault(require("../app/services/utils/pagination/paginationCollection"));
+const loggerService_1 = __importDefault(require("../http/utlis/loggerService"));
+const customError_1 = __importDefault(require("./exceptions/customError"));
 const TodoModel = mysqlConnection_1.default.define("todo", {
     TodoId: {
         type: sequelize_1.default.DataTypes.UUID,
@@ -35,30 +38,70 @@ const TodoModel = mysqlConnection_1.default.define("todo", {
 class TodoStore {
     static add(todoEntity) {
         return __awaiter(this, void 0, void 0, function* () {
-            const todoObj = yield TodoModel.create(todoEntity);
-            return TodoEntity_1.default.createFromObj(todoObj);
+            try {
+                const todoObj = yield TodoModel.create(todoEntity);
+                return TodoEntity_1.default.createFromObj(todoObj);
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
-    static findByTodoId(todoId) {
+    static findByTodoId(TodoId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const todo = yield TodoModel.findOne({ where: { todoId } });
-            return TodoEntity_1.default.createFromObj(todo);
+            try {
+                const todo = yield TodoModel.findOne({ where: { TodoId }, raw: true });
+                if (!todo) {
+                    throw new customError_1.default(400, 'Todo not found,Todo ID unavailable ');
+                }
+                else {
+                    return TodoEntity_1.default.createFromObj(todo);
+                }
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
-    static findAllTodos() {
+    static findAllTodos(pagination) {
         return __awaiter(this, void 0, void 0, function* () {
-            const todoObjs = yield TodoModel.findAll();
-            return todoObjs.map((todoObj) => TodoEntity_1.default.createFromObj(todoObj));
+            try {
+                const todoObjs = yield TodoModel.findAndCountAll({
+                    limit: pagination.limit(),
+                    offset: pagination.offset()
+                });
+                const todosCollection = todoObjs.rows.map((todoObj) => TodoEntity_1.default.createFromObj(todoObj));
+                const paginatedCollection = new paginationCollection_1.default(pagination, todoObjs.count, todosCollection);
+                return paginatedCollection.getPaginatedData();
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
-    static remove(todoEntity) {
+    static remove(todoId) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield TodoModel.destroy({ where: { todoId: todoEntity.todoId } });
+            try {
+                return yield TodoModel.destroy({ where: { TodoId: todoId } });
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
     static update(todoEntity) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield TodoModel.update(todoEntity, { where: { todoId: todoEntity.todoId } });
+            try {
+                return yield TodoModel.update(todoEntity, { where: { TodoId: todoEntity.todoId } });
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
 }

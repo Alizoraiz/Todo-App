@@ -1,63 +1,76 @@
-import UserEntity from '../../domain/user/UserEntity'
-import UserStore from '../../stores/UserStore'
- 
+import UserService from '../../app/services/users/userService'
+import handleError from '../utlis/errorHandler';
+import logger from '../utlis/loggerService'
+
+
+// Create User
+
+const createUser = async (req: any,res: any) => {
+   const {username,password,email} = req.body
+   try {
+      const response = await UserService.addUser(username, password,email);
+      res.status(200).send(response)
+   
+   } catch (err: any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
+}
+
+// Get All Users
+
+const getAllUsers = async (req: any,res: any) => {
+   const {page,perPage} = req.query
+   try {
+      const response = await UserService.getAllUsers(page,perPage);
+      res.status(200).send(response);
+   } catch (err:any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
+}
 
 //Get Single User
 
-const getUser = async (req: any,res: any) =>{
-   let id: string = req.params.id
-   let user: any = await UserStore.findByUserId(id)
+const getOneUser = async (req: any,res: any) => {
+   const {id} = req.params;
+   try {
+      const response = await UserService.getOneUser(id);
+      res.status(200).send(response)
    
-   if(user)
-      res.status(200).send(user)
-   else
-      res.status(404).send("User not found")
- }
+   } catch (err: any) {
+     logger.warn(err.message);
+     return handleError(err, res);
+   }
+}
 
 //Update User
-const updateUser = async (req: any,res: any) =>{
-   req.body.userId = req.params.id;
-   const userEntity: any = UserEntity.createFromObj(req.body);   
-   const user: any = await UserStore.update(userEntity);
 
-   if (user[0] === 1) 
-   res.status(200).send("User has been updated");
-   else
-   res.send("Error, user not Updated")   
+const updateUser = async (req: any,res: any) =>{
+   const {id} = req.params;
+   const {username,password,email} = req.body;
+   
+   try {
+      const response = await UserService.updateUser(id,username,password,email);
+      return res.status(200).send({message:'Successfully updated'});
+   } catch (err: any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
 }
 
 //Delete User
 
 const deleteUser = async (req: any,res: any) =>{
-   req.body.userId = req.params.id;
-   const userEntity: any = UserEntity.createFromObj(req.body);
+   const {id} = req.params;
+   try {
+      const response = await UserService.deleteUser(id);
+      return res.status(200).send({message:'Successfully delete'});
 
-   await UserStore.remove(userEntity)
-   res.status(200).send("User has been deleted")
+   } catch (err: any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
 }
 
- // Create User
-
-const createUser = async (req: any,res: any) => {
-   //Steps
-    //1. Destruct body object from request
-    //2. Create entitity object
-    //3. Pass entity to store
-    //4. return store entity to response
-    
-   const userEntity: any = UserEntity.createFromDetails(req.body.username,req.body.password,req.body.email);
-   const user = await UserStore.add(userEntity)
-   res.send(user)
- }
-
- // Get All Users
-
-const getAllUsers = async (req: any,res: any) =>{
-   //Steps
-   //1. Find from store
-   //2. Return store object to response
-   let usersObj = await UserStore.findAllUsers()
-   res.status(200).send(usersObj)
-}
-
- export default {createUser,getAllUsers,getUser,deleteUser,updateUser}
+  export default {createUser,getAllUsers,getOneUser,deleteUser,updateUser}

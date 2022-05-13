@@ -1,8 +1,6 @@
 import {Sequelize, DataTypes} from 'sequelize';
 import dbConfig from "./dbConfig"
-
-
-console.log(dbConfig.DB);
+import logger from "../http/utlis/loggerService"
 
 const sequelize = new Sequelize( 
     dbConfig.DB || '',
@@ -15,10 +13,10 @@ const sequelize = new Sequelize(
 
 sequelize.authenticate()
 .then (() =>{
-    console.log('Connected');
+    logger.info('Connected');
 })
 .catch((err: Error) =>{
-    console.log(`Error: ${err}`);
+    logger.info(`Error: ${err}`);
 })
 
  const mysqlConnection:any = {}
@@ -29,7 +27,7 @@ mysqlConnection.sequelize = sequelize
 mysqlConnection.sequelize.sync({force:false})
 
 .then (()=>{
-    console.log('yes resync done')
+    logger.info('yes resync done')
 })
 
 export default sequelize

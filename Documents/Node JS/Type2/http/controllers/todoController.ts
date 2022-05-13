@@ -1,58 +1,74 @@
-import TodoEntity from '../../domain/todo/TodoEntity'
-import TodoStore from '../../stores/TodoStore'
+import TodoService from '../../app/services/todos/todoService'
+import handleError from '../utlis/errorHandler';
+import logger from '../utlis/loggerService'
 
 
+//Create TODO
 
- //Create TODO
+const addTodo = async (req: any,res: any) => {
+   const {body: {name,price,description}} = req
+   try {
+      const response = await TodoService.addTodo(name,price,description);
+      res.status(200).send(response)
+   } catch (err: any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
+}
 
- const addTodo = async (req: any,res: any) => {
+//Get All TODO's
+
+const getAllTodo = async (req: any,res: any) =>{
+   const {page,perPage} = req.query
+   try {
+      const response = await TodoService.getAllTodos(page,perPage);
+      res.status(200).send(response);
+   } catch (err: any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
+}
+
+//Get Single Todo
+
+const getOneTodo = async (req: any,res: any) => {
+   const {id} = req.params;
+   try {
+      const response = await TodoService.getOneTodo(id);
+      res.status(200).send(response);
    
-   const todoEntity: TodoEntity = TodoEntity.createFromDetails(req.body.name,req.body.price,req.body.description);
-   const todo: any = await TodoStore.add(todoEntity);
-   res.status(200).send(todo);
-   
- }
+   } catch (err: any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
+}
 
- //Get All TODO's
+//Update Todo
 
- const getAllTodo = async (req: any,res: any) =>{  
-    let todos: any = await TodoStore.findAllTodos()
-    res.status(200).send(todos)
- }
+const updateTodo = async (req: any,res: any) =>{
+   const {id} = req.params
+   const {name,price,description} = req.body;
+   try {
+      const response = await TodoService.updateTodo(id,name,price,description);
+      return res.status(200).send(response);
+   } catch (err: any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
+}
 
- //Get Single Todo
+//Delete Todo
 
- const getOneTodo = async (req: any,res: any) =>{
-    let id: any = req.params.id
-    let todo: any = await TodoStore.findByTodoId(id)
-
-    if(todo)
-    res.status(200).send(todo)
-    else
-    res.status(404).send("Todo not found")
- }
-
- //Update Todo
-
- const updateTodo = async (req: any,res: any) =>{
-    req.body.todoId = req.params.id;
-    const todoEntity: any = TodoEntity.createFromObj(req.body);   
-    const todo: any = await TodoStore.update(todoEntity);
-    
-    if (todo[0] === 1) 
-    res.status(200).send("Todo has been updated");
-    else
-    res.send("Error, Todo not Updated")  
- }
-
- //Delete Product
-
- const deleteTodo = async (req: any,res: any) =>{
-   req.body.todoId = req.params.id;
-   const todoEntity: any = TodoEntity.createFromObj(req.body);
-
-   await TodoStore.remove(todoEntity)
-   res.status(200).send("Todo has been deleted")
- }
+const deleteTodo = async (req: any,res: any) => {   
+   const {id} = req.params;
+   try {
+      const response = await TodoService.deleteTodo(id);
+      res.status(200).send({message:'Successfully deleted'})
+      
+   } catch (err: any) {
+      logger.warn(err.message);
+      return handleError(err, res);
+   }
+}
  
- export default {addTodo, getAllTodo, getOneTodo, updateTodo, deleteTodo}
+export default {addTodo, getAllTodo, getOneTodo, updateTodo, deleteTodo}

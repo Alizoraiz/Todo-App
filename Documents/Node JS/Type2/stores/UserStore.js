@@ -15,6 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const UserEntity_1 = __importDefault(require("../domain/user/UserEntity"));
 const sequelize_1 = __importDefault(require("sequelize"));
 const mysqlConnection_1 = __importDefault(require("../config/mysqlConnection"));
+const paginationCollection_1 = __importDefault(require("../app/services/utils/pagination/paginationCollection"));
+const loggerService_1 = __importDefault(require("../http/utlis/loggerService"));
+const customError_1 = __importDefault(require("./exceptions/customError"));
 const UserModel = mysqlConnection_1.default.define("user", {
     userId: {
         type: sequelize_1.default.DataTypes.UUID,
@@ -35,30 +38,70 @@ const UserModel = mysqlConnection_1.default.define("user", {
 class UserStore {
     static add(userEntity) {
         return __awaiter(this, void 0, void 0, function* () {
-            const userObj = yield UserModel.create(userEntity);
-            return UserEntity_1.default.createFromObj(userObj);
+            try {
+                const userObj = yield UserModel.create(userEntity);
+                return UserEntity_1.default.createFromObj(userObj);
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
     static findByUserId(userId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield UserModel.findOne({ where: { userId } });
-            return UserEntity_1.default.createFromObj(user);
+            try {
+                const user = yield UserModel.findOne({ where: { userId }, raw: true });
+                if (!user) {
+                    throw new customError_1.default(400, 'User does not exist');
+                }
+                else {
+                    return UserEntity_1.default.createFromObj(user);
+                }
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
-    static findAllUsers() {
+    static findAllUsers(pagination) {
         return __awaiter(this, void 0, void 0, function* () {
-            const userObjs = yield UserModel.findAll();
-            return userObjs.map((userObj) => UserEntity_1.default.createFromObj(userObj));
+            try {
+                const userObjs = yield UserModel.findAndCountAll({
+                    limit: pagination.limit(),
+                    offset: pagination.offset()
+                });
+                const userCollection = userObjs.rows.map((userObj) => UserEntity_1.default.createFromObj(userObj));
+                const paginatedCollection = new paginationCollection_1.default(pagination, userObjs.count, userCollection);
+                return paginatedCollection.getPaginatedData();
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
-    static remove(userEntity) {
+    static remove(userId) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield UserModel.destroy({ where: { userId: userEntity.userId } });
+            try {
+                return yield UserModel.destroy({ where: { userId: userId } });
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
     static update(userEntity) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield UserModel.update(userEntity, { where: { userId: userEntity.userId } });
+            try {
+                return yield UserModel.update(userEntity, { where: { userId: userEntity.userId } });
+            }
+            catch (error) {
+                loggerService_1.default.warn(error.message);
+                throw new customError_1.default(400, error.message);
+            }
         });
     }
 }

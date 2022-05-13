@@ -1,7 +1,6 @@
-import todoController from '../controllers/todoController'//TODO
-// import authController from '../controllers/authController'
+import todoController from '../controllers/todoController'
+
 const todoRouter = require ('express').Router()
-//import authenticateToken from '../controllers/authController'
 
 todoRouter.post('/addTodo',todoController.addTodo)
 todoRouter.get('/allTodos',todoController.getAllTodo)

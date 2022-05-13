@@ -1,6 +1,11 @@
 import UserEntity from '../domain/user/UserEntity'
 import Sequelize from 'sequelize'
 import mysqlConnection from '../config/mysqlConnection';
+import PaginationOptions from '../app/services/utils/pagination/paginationOptions';
+import PaginatedCollection from '../app/services/utils/pagination/paginationCollection';
+import logger from "../http/utlis/loggerService"
+import CustomError from './exceptions/customError';
+
 
 const UserModel = mysqlConnection.define("user",{
     userId: {
@@ -21,33 +26,63 @@ const UserModel = mysqlConnection.define("user",{
 });
 
 class UserStore {
-
     static async add(userEntity: any){
-        const userObj = await UserModel.create(userEntity);
-        return UserEntity.createFromObj(userObj) 
+        try {
+            const userObj = await UserModel.create(userEntity);
+            return UserEntity.createFromObj(userObj) 
+        } catch (error:any) {
+            logger.warn(error.message);
+            throw new CustomError(400, error.message); 
+        }
     }
-
     static async findByUserId(userId: string){
-        const user = await UserModel.findOne({where: { userId }})
-        return UserEntity.createFromObj(user);
+        try {
+            const user = await UserModel.findOne({where: { userId }, raw:true})
+            
+            if (!user) {
+                throw new CustomError(400, 'User does not exist');
+            } else {
+                return UserEntity.createFromObj(user)
+            }
+        } catch (error: any) {
+            logger.warn(error.message);
+            throw new CustomError(400, error.message); 
+        }
     }
     
-    static async findAllUsers(){
-        const userObjs = await UserModel.findAll();
-        return userObjs.map((userObj: any) => UserEntity.createFromObj(userObj))
+    static async findAllUsers(pagination: PaginationOptions){
+        try{
+            const userObjs = await UserModel.findAndCountAll({
+                limit: pagination.limit(),
+                offset: pagination.offset()  
+            });
+            const userCollection = userObjs.rows.map((userObj: any) => UserEntity.createFromObj(userObj));
+            const paginatedCollection = new PaginatedCollection(pagination, userObjs.count, userCollection);
+            return paginatedCollection.getPaginatedData();
+
+        }catch(error: any){
+            logger.warn(error.message);
+            throw new CustomError(400, error.message); 
+        }
+
     }
 
-    static async remove(userEntity: UserEntity){
-        return await UserModel.destroy({where: {userId: userEntity.userId}})
+    static async remove(userId: string ){
+        try {
+            return await UserModel.destroy({where: {userId: userId}})
+        } catch (error: any) {
+            logger.warn(error.message);
+            throw new CustomError(400, error.message); 
+        }
     }
 
     static async update(userEntity: UserEntity){
-        return await UserModel.update(userEntity, {where: {userId: userEntity.userId}})
+        try {
+            return await UserModel.update(userEntity, {where: {userId: userEntity.userId}})
+        } catch (error: any) {
+            logger.warn(error.message);
+            throw new CustomError(400, error.message); 
+        }
     }
-      
 }
-
 export default UserStore
-
-
-
